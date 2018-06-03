@@ -79,7 +79,7 @@ func NewKitchenSyncWithDb(path string, db *sql.DB, driver string) (*KitchenSync,
 
 func (k *KitchenSync) expandString(value string) string {
 	// Is this a file function?
-	re := regexp.MustCompile("\\$file\\(([A-Za-z0-9_.-]+)\\)")
+	re := regexp.MustCompile("\\$file\\(([A-Za-z0-9_/.-]+)\\)")
 	if re.MatchString(value) {
 		match := re.FindStringSubmatch(value)
 		data, err := ioutil.ReadFile(match[1])
