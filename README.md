@@ -47,7 +47,8 @@ By default, all fields that are _not_ nested under the _defaults stanza will be 
 each time the tool has run. In the example above, if I had updated my name in the database from "James" to "Jim" it
  would be reset to "James" when I next run the tool.
 
-When the reset flag is supplied, the fields under _defaults are also reset.
+When the reset flag is supplied, the fields under _defaults are also reset. This makes _defaults useful for modelling
+fields that you want to remain stateful during testing.
 
 When the clean flag is supplied, the full contents of the database are dropped first. This gets you back to a known
 good state and deletes any data that has been added without using kitchen sync.
