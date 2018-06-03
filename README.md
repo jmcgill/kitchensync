@@ -1,4 +1,4 @@
-# kitchensync
+# kitchen sync
 
 Prototype-ready synchronization between code and databases.
 
@@ -7,7 +7,7 @@ Specify the contents of a Postgres Database using HCL, rather than migrations, m
 # Usage
 
 This tool assumes that a Postgres DB exists, and has tables created. It is also assumed that each table has a column
-called ID.
+called id which is used as the primary key for that table.
 
 Data to insert is specified using the following syntax:
 
@@ -24,7 +24,18 @@ Data to insert is specified using the following syntax:
 }
 ```
 
-For example, given a database with a users table:
+For example, given a table created as follows:
+
+```
+CREATE TABLE users (
+  id serial unique,
+  name text,
+  city text,
+  points int
+);
+```
+
+we can specify data cleanly in data.hcl like so:
 
 ```
 users "me" {
@@ -74,6 +85,22 @@ column of that entity is the primary key in the database.
 
 This makes it much easier to specify relationships between entities without needing to care about ID stability, or
 needing to remember the ID for each entity.
+
+Given two tables created as follows:
+
+```
+CREATE TABLE users (
+  id serial unique,
+  name text
+);
+
+CREATE TABLE pets (
+  id serial unique,
+  owner int references users(id)
+)
+```
+
+we can create a relationship between a user and a pet like so:
 
 ```
 users "me" {
