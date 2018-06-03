@@ -55,7 +55,7 @@ Run the tool as follows:
 # Reset vs Clean
 
 By default, all fields that are _not_ nested under the _defaults stanza will be reset back to their specified values
-each time the tool has run. In the example above, if I had updated my name in the database from "James" to "Jim" it
+each time the tool is run. In the example above, if I had updated my name in the database from "James" to "Jim" it
  would be reset to "James" when I next run the tool.
 
 When the reset flag is supplied, the fields under _defaults are also reset. This makes _defaults useful for modelling
