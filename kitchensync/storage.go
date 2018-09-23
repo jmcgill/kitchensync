@@ -12,6 +12,7 @@ import (
 	"os"
 	"regexp"
 	"database/sql"
+	"path"
 )
 
 // I could automatically detect what type of entity a relationship refers to using this reflection query
@@ -80,14 +81,16 @@ func NewKitchenSyncWithDb(path string, db *sql.DB, driver string) (*KitchenSync,
 func (k *KitchenSync) expandString(value string) string {
 	// Is this a file function?
 	re := regexp.MustCompile("\\$file\\(([A-Za-z0-9_/.-]+)\\)")
-	if re.MatchString(value) {
-		match := re.FindStringSubmatch(value)
-		data, err := ioutil.ReadFile(match[1])
+	value = re.ReplaceAllStringFunc(value, func(m string) string {
+		match := re.FindStringSubmatch(m)
+		data, err := ioutil.ReadFile(path.Join(k.path, match[1]))
 		if err != nil {
-			data = []byte("")
+			log.Printf("Error reading template file expansion: %v %v", match[1], err)
+			return ""
 		}
-		return string(data)
-	}
+		clean := strings.Replace(string(data), "\n", "\\n", -1)
+		return clean
+	})
 
 	// Escape string
 	escaped := strings.Replace(value, "'", "''", -1)
