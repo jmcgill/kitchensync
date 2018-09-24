@@ -118,7 +118,6 @@ func (k *KitchenSync) isReference(value string) (int64, bool, error) {
 			}
 		}
 
-		fmt.Printf("Returning ID %v", k.existing[compoundKey].Id)
 		return k.existing[compoundKey].Id, true, nil
 	}
 	return 0, false, nil
