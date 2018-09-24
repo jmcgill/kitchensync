@@ -1,18 +1,19 @@
 package kitchensync
 
 import (
-	"github.com/jmoiron/sqlx"
-	"log"
-	_ "github.com/lib/pq"
-	"fmt"
-	"strings"
-	"io/ioutil"
-	"github.com/hashicorp/hcl"
-	"path/filepath"
-	"os"
-	"regexp"
 	"database/sql"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"os"
 	"path"
+	"path/filepath"
+	"regexp"
+	"strings"
+
+	"github.com/hashicorp/hcl"
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 )
 
 // I could automatically detect what type of entity a relationship refers to using this reflection query
@@ -35,26 +36,28 @@ type Entry map[string]interface{}
 
 type SyncEntry struct {
 	Tablename string
-	Name string
-	Id int64
+	Name      string
+	Id        int64
 }
 
 type KitchenSync struct {
-	db *sqlx.DB
-	path string
-	config Config
+	db       *sqlx.DB
+	path     string
+	config   Config
+	log      bool
 	existing map[string]SyncEntry
 }
 
-func NewKitchenSync(path string, dbURI string) (*KitchenSync, error) {
+func NewKitchenSync(path string, dbURI string, log bool) (*KitchenSync, error) {
 	db, err := sqlx.Connect("postgres", dbURI)
 	if err != nil {
 		panic("Could not connect to postgres")
 	}
 
 	k := &KitchenSync{
-		db: db,
+		db:   db,
 		path: path,
+		log:  log,
 	}
 	err = k.init()
 	if err != nil {
@@ -67,7 +70,7 @@ func NewKitchenSync(path string, dbURI string) (*KitchenSync, error) {
 func NewKitchenSyncWithDb(path string, db *sql.DB, driver string) (*KitchenSync, error) {
 	dbx := sqlx.NewDb(db, driver)
 	k := &KitchenSync{
-		db: dbx,
+		db:   dbx,
 		path: path,
 	}
 	err := k.init()
@@ -121,7 +124,7 @@ func (k *KitchenSync) isReference(value string) (int64, bool, error) {
 	return 0, false, nil
 }
 
-func (k *KitchenSync) collectValues(entries map[string]interface{}, includeDefaults bool) (map[string]string) {
+func (k *KitchenSync) collectValues(entries map[string]interface{}, includeDefaults bool) map[string]string {
 	output := make(map[string]string)
 
 	for key, value := range entries {
@@ -142,7 +145,7 @@ func (k *KitchenSync) collectValues(entries map[string]interface{}, includeDefau
 		}
 	}
 
-	if (!includeDefaults) {
+	if !includeDefaults {
 		return output
 	}
 
@@ -169,7 +172,7 @@ func (k *KitchenSync) Drop() error {
 	log.Print("Dropping all data")
 
 	tables := []string{}
-	err := k.db.Select(&tables, "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';");
+	err := k.db.Select(&tables, "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';")
 	if err != nil {
 		return err
 	}
@@ -186,7 +189,7 @@ func (k *KitchenSync) Drop() error {
 func (k *KitchenSync) Sync(reset bool) error {
 	data := make([]byte, 0)
 	err := filepath.Walk(k.path, func(path string, info os.FileInfo, err error) error {
-		if (filepath.Ext(path) == ".hcl") {
+		if filepath.Ext(path) == ".hcl" {
 			d, err := ioutil.ReadFile(path)
 			if err != nil {
 				return err
@@ -202,7 +205,7 @@ func (k *KitchenSync) Sync(reset bool) error {
 	}
 
 	existingEntries := []SyncEntry{}
-	err = k.db.Select(&existingEntries, "SELECT * FROM _kitchensync");
+	err = k.db.Select(&existingEntries, "SELECT * FROM _kitchensync")
 	if err != nil {
 		return err
 	}
@@ -252,7 +255,6 @@ func (k *KitchenSync) Sync(reset bool) error {
 }
 
 func (k *KitchenSync) exists(table string, id int64) (bool, error) {
-	log.Printf("%v.%v", table, id)
 	result := make([]int, 0)
 
 	q := fmt.Sprintf("SELECT id FROM %v WHERE id = %v", table, id)
@@ -283,7 +285,9 @@ func (k *KitchenSync) createMissing(table string, name string, entry Entry) erro
 	}
 
 	q := fmt.Sprintf("INSERT INTO %v (%v) VALUES (%v) RETURNING id", table, strings.Join(keys, ","), strings.Join(values, ","))
-	log.Printf("Executing query %v", q)
+	if k.log {
+		log.Printf("Executing query %v", q)
+	}
 	rows, err := k.db.Query(q)
 	if err != nil {
 		return err
@@ -301,8 +305,8 @@ func (k *KitchenSync) createMissing(table string, name string, entry Entry) erro
 
 	k.existing[compoundKey] = SyncEntry{
 		Tablename: table,
-		Name: name,
-		Id: id,
+		Name:      name,
+		Id:        id,
 	}
 
 	return nil
@@ -317,7 +321,9 @@ func (k *KitchenSync) updateExisting(table string, id int64, entry Entry, reset 
 	}
 
 	q := fmt.Sprintf("UPDATE %v SET %v WHERE id = %v", table, strings.Join(updates, ", "), id)
-	log.Printf("Executing query %v", q)
+	if k.log {
+		log.Printf("Executing query %v", q)
+	}
 	_, err := k.db.Exec(q)
 	if err != nil {
 		return err
