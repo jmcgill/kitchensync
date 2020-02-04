@@ -92,6 +92,8 @@ func (k *KitchenSync) expandString(value string) string {
 			return ""
 		}
 		clean := strings.Replace(string(data), "\n", "\\n", -1)
+		clean = strings.Replace(clean, "\"", "'", -1)
+
 		return clean
 	})
 
