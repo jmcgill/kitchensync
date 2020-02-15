@@ -38,7 +38,7 @@ func main() {
 	log.Printf("Connecting to db: %v", config.db)
 
 	dbURI := config.db
-	k, err := kitchensync.NewKitchenSync(".", dbURI)
+	k, err := kitchensync.NewKitchenSync(".", dbURI, true)
 	if err != nil {
 		panic(err)
 	}
